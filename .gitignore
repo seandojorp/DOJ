@@ -1,0 +1,5 @@
+config/config.php
+storage/setup.lock
+storage/setup.mutex
+storage/logs/*
+!storage/logs/.gitkeep
