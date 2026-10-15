@@ -7,7 +7,9 @@ declare(strict_types=1);
 
 define('APP_ROOT', dirname(__DIR__));
 define('APP_PATH', APP_ROOT . '/app');
-define('STORAGE_PATH', APP_ROOT . '/storage');
+define('ON_VERCEL', getenv('VERCEL') !== false);
+// Vercel's deployment files are read-only; only the temp directory is writable.
+define('STORAGE_PATH', ON_VERCEL ? sys_get_temp_dir() . '/doj-ems' : APP_ROOT . '/storage');
 
 if (PHP_VERSION_ID < 80200) {
     http_response_code(500);
@@ -27,6 +29,10 @@ spl_autoload_register(static function (string $class): void {
 require APP_PATH . '/helpers.php';
 
 $configFile = APP_ROOT . '/config/config.php';
+if (!is_file($configFile) && (ON_VERCEL || getenv('DB_HOST') !== false)) {
+    // No local config file: build the configuration from environment variables.
+    $configFile = APP_ROOT . '/config/config.env.php';
+}
 if (!is_file($configFile)) {
     http_response_code(500);
     exit('Configuration missing: copy config/config.example.php to config/config.php and edit it (see INSTALL.md).');
@@ -42,7 +48,8 @@ ini_set('log_errors', '1');
 if (!is_dir(STORAGE_PATH . '/logs')) {
     @mkdir(STORAGE_PATH . '/logs', 0770, true);
 }
-ini_set('error_log', STORAGE_PATH . '/logs/php-error.log');
+// On Vercel, send errors to stderr so they appear in the project's Runtime Logs.
+ini_set('error_log', ON_VERCEL ? 'php://stderr' : STORAGE_PATH . '/logs/php-error.log');
 
 set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
     if (!(error_reporting() & $severity)) {

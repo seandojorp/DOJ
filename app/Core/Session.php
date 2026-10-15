@@ -27,6 +27,13 @@ final class Session
         }
         ini_set('session.gc_maxlifetime', (string) max(1800, (int) Config::get('session.absolute_timeout', 28800)));
 
+        if (Config::get('session.handler', 'files') === 'db') {
+            // Garbage-collect expired rows on ~1% of requests.
+            ini_set('session.gc_probability', '1');
+            ini_set('session.gc_divisor', '100');
+            session_set_save_handler(new DatabaseSessionHandler(), true);
+        }
+
         session_name((string) Config::get('session.name', 'DOJEMS_SID'));
         session_set_cookie_params([
             'lifetime' => 0,

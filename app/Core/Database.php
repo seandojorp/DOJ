@@ -25,12 +25,19 @@ final class Database
                 Config::get('db.name', 'doj-employee'),
                 Config::get('db.charset', 'utf8mb4')
             );
-            self::$pdo = new PDO($dsn, (string) Config::get('db.user'), (string) Config::get('db.pass'), [
+            $options = [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 PDO::ATTR_STRINGIFY_FETCHES  => false,
-            ]);
+            ];
+            // TLS for hosted MySQL services (Aiven, TiDB Cloud, etc.); set via DB_SSL / DB_SSL_CA.
+            $sslCa = Config::get('db.ssl_ca');
+            if (is_string($sslCa) && $sslCa !== '') {
+                $caAttr = defined('Pdo\Mysql::ATTR_SSL_CA') ? \Pdo\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA;
+                $options[$caAttr] = $sslCa;
+            }
+            self::$pdo = new PDO($dsn, (string) Config::get('db.user'), (string) Config::get('db.pass'), $options);
             $tz = (string) Config::get('db.time_zone', '');
             if ($tz !== '' && preg_match('/^[+-]\d{2}:\d{2}$/', $tz)) {
                 self::$pdo->exec("SET time_zone = '" . $tz . "'");

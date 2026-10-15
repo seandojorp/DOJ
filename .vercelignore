@@ -1,0 +1,6 @@
+config/config.php
+storage/setup.lock
+storage/setup.mutex
+storage/logs/*.log
+tests
+tools
